@@ -1,7 +1,7 @@
 Package: boiwsa
 Type: Package
 Title: Seasonal Adjustment of Weekly Data
-Version: 1.1.0
+Version: 1.1.1
 Authors@R: 
     person("Tim", "Ginker", email ="tim.ginker@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0002-7138-5417"))
@@ -11,12 +11,12 @@ Description: Perform seasonal adjustment of weekly data. The package offers a us
 License: MIT + file LICENSE
 Encoding: UTF-8
 RoxygenNote: 7.2.3
-Imports: dplyr, ggplot2, Hmisc, lubridate, MuMIn, stats, tidyr, rlang
+Imports: dplyr, ggplot2, Hmisc, lubridate, stats, tidyr, rlang
 LazyData: true
 Depends: R (>= 2.10)
 URL: https://github.com/timginker/boiwsa
 BugReports: https://github.com/timginker/boiwsa/issues
 NeedsCompilation: no
-Packaged: 2024-05-22 11:12:48 UTC; timgi
+Packaged: 2024-06-05 11:01:40 UTC; timgi
 Repository: CRAN
-Date/Publication: 2024-05-22 11:40:08 UTC
+Date/Publication: 2024-06-05 16:10:12 UTC
