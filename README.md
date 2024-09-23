@@ -38,7 +38,7 @@ that in weekly data, $t$ typically denotes the date of the last day
 within a given week. The seasonal component is specified using
 trigonometric variables as:
 
-$$
+``` math
 \begin{eqnarray*}
 S_{t} &=&\sum_{k=1}^{K}\left( \alpha _{k}^{y}\sin (\frac{2\pi kD_{t}^{y}}{
 n_{t}^{y}})+\beta _{k}^{y}\cos (\frac{2\pi kD_{t}^{y}}{n_{t}^{y}})\right) +
@@ -46,7 +46,7 @@ n_{t}^{y}})+\beta _{k}^{y}\cos (\frac{2\pi kD_{t}^{y}}{n_{t}^{y}})\right) +
 &&\sum_{l=1}^{L}\left( \alpha _{l}^{m}\sin (\frac{2\pi lD_{t}^{m}}{n_{t}^{m}}
 )+\beta _{l}^{m}\cos (\frac{2\pi lD_{t}^{m}}{n_{t}^{m}})\right) ,
 \end{eqnarray*}
-$$
+```
 
 where $D_{t}^{y}$ and $D_{t}^{m}$ are the day of the year and the day of
 the month, and $n_{t}^{y}$ and $n_{t}^{m}$ are the number of days in the
@@ -130,21 +130,26 @@ library(boiwsa)
 ```
 
 Next, load your time series data into a data frame object. Here is an
-example that is based on the `gasoline` data from the `fpp2` package:
+example that is based on the `gasoline` data from the US Energy
+Information Administration that we copied from the from the `fpp2`
+package:
 
 ``` r
 data("gasoline.data")
-
-plot(gasoline.data$date,gasoline.data$y,type="l",xlab="Year",ylab=" ", main="Weekly US gasoline production")
+plot(gasoline.data$date,
+     gasoline.data$y,
+     type="l"
+     ,xlab="Year",
+     ylab=" ",
+     main="Weekly US gasoline production")
 ```
 
-<img src="man/figures/README-unnamed-chunk-3-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-3-1.png" width="70%" />
 
 Once you have your data loaded, you can use the `boiwsa` function to
 perform weekly seasonal adjustment:
 
 ``` r
-
 res=boiwsa(x=gasoline.data$y,dates=gasoline.data$date)
 ```
 
@@ -168,18 +173,10 @@ addition, the estimated seasonal factors are stored as `sf`.
 You can then plot the adjusted data to visualize the seasonal pattern:
 
 ``` r
-plot(gasoline.data$date,gasoline.data$y,type="l",xlab="Year",ylab=" ", main="Weekly US gasoline production")
-lines(gasoline.data$date,res$sa,col="red")
-legend(
-  "topleft",
-  legend = c("Original", "SA"),
-  lwd = c(2,2),
-  col = c("black", "red"),
-  bty = "n"
-)
+plot(res)
 ```
 
-<img src="man/figures/README-unnamed-chunk-5-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-5-1.png" width="70%" />
 
 To evaluate the quality of the adjustment, you can use the `plot_spec`
 function provided by the package, which generates a plot of the
@@ -189,7 +186,7 @@ autoregressive spectrum of the raw and seasonally adjusted data:
 plot_spec(res)
 ```
 
-<img src="man/figures/README-unnamed-chunk-6-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-6-1.png" width="70%" />
 
 # References
 
