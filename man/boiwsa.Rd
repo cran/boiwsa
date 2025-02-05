@@ -8,7 +8,7 @@ boiwsa(
   x,
   dates,
   r = 0.8,
-  auto.ao.seacrh = TRUE,
+  auto.ao.search = TRUE,
   out.threshold = 3.8,
   ao.list = NULL,
   my.k_l = NULL,
@@ -24,13 +24,13 @@ boiwsa(
 
 \item{r}{Defines the rate of decay of the weights. Should be between zero and one. By default is set to 0.8.}
 
-\item{auto.ao.seacrh}{Boolean. Search for additive outliers}
+\item{auto.ao.search}{Boolean. Search for additive outliers}
 
 \item{out.threshold}{t-stat threshold in outlier search. By default is 3.8}
 
 \item{ao.list}{Vector with user specified additive outliers in a date format}
 
-\item{my.k_l}{Numeric vector defining the number of yearly and monthly trigonometric variables. If NULL, is found automatically using the information criteria}
+\item{my.k_l}{Numeric vector defining the number of yearly and monthly trigonometric variables. If NULL, is found automatically using the information criteria. The search range is 0:36 and 0:12 with the step size of 6 for the yearly and monthly variables, respectively.}
 
 \item{H}{Matrix with holiday- and trading day factors}
 

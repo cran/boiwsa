@@ -33,6 +33,16 @@ find_outliers=function(x,dates,out.tolerance=3.8,my.AO.list=NULL,H=NULL,my.k_l=N
 
   #----------------------------------------------#
 
+  rankUpdateInverse <- function(X_inv, X_t, v) {
+    u1 <- X_t %*% v
+    u2 <- X_inv %*% u1
+    d <- as.numeric(1 / (t(v) %*% v - t(u1) %*% u2))
+    u3 <- d * u2
+    F11_inv <- X_inv + d * u2 %*% t(u2)
+    XtX_inv <- rbind(cbind(F11_inv, -u3), c(-u3, d))
+    return(XtX_inv)
+  }
+
   # create AO variables matrix
 
   my_ao=function(dates,out.list) {
@@ -177,7 +187,7 @@ find_outliers=function(x,dates,out.tolerance=3.8,my.AO.list=NULL,H=NULL,my.k_l=N
 
 
         aic0[i,j]=stats::AIC(m)
-        aicc0[i,j]=stats::AIC(m)+2*length(m$coefficients)*(length(m$coefficients)+1)/(length(m$residuals)-length(m$coefficients)+1)
+        aicc0[i,j]=stats::AIC(m)+2*length(m$coefficients)*(length(m$coefficients)+1)/(length(m$residuals)-length(m$coefficients)-1)
         bic0[i,j]=stats::BIC(m)
 
       }
@@ -244,22 +254,23 @@ find_outliers=function(x,dates,out.tolerance=3.8,my.AO.list=NULL,H=NULL,my.k_l=N
 
     run=TRUE
 
+    Xs_t <- t(Xs)
     while (run) {
-
-      Ts=NULL
-
+      Ts <- numeric(length(out.search.points))
+      ts_idx <- 1
+      Xst2_inv <- solve(crossprod(Xs))
+      Xst_y <- t(Xs) %*% y
       for (t in out.search.points) {
 
         AOt=rep(0,length(dates))
 
         AOt[t]=1
 
-        Xst=cbind(Xs,AOt)
-
-        Tt=(solve(t(Xst)%*%Xst)%*%t(Xst)%*%y)[ncol(Xst)]/(diag(solve((t(Xst)%*%Xst))*sig_R^2)[ncol(Xst)]^0.5)
-
-        Ts=c(Ts,abs(Tt))
-
+        Xst2_inv_t <- rankUpdateInverse(Xst2_inv, Xs_t, AOt)
+        Xst_y_t <- rbind(Xst_y, t(AOt) %*% y)
+        Tt <- (Xst2_inv_t %*% Xst_y_t)[ncol(Xs) + 1] / (diag(Xst2_inv_t * sig_R^2)[ncol(Xs) + 1]^0.5)
+        Ts[ts_idx] <- abs(Tt)
+        ts_idx <- ts_idx + 1
       }
 
 
@@ -273,10 +284,8 @@ find_outliers=function(x,dates,out.tolerance=3.8,my.AO.list=NULL,H=NULL,my.k_l=N
 
         out.search.points=out.search.points[-which.max(Ts)]
 
-
-
-        Xs=cbind(Xs,AOt)
-
+        Xs <- cbind(Xs, AOt)
+        Xs_t <- t(Xs)
       }
 
 

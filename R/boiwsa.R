@@ -9,10 +9,10 @@
 #' @param x Input time series as a numeric vector
 #' @param dates a vector of class "Date", containing the data dates
 #' @param r Defines the rate of decay of the weights. Should be between zero and one. By default is set to 0.8.
-#' @param auto.ao.seacrh Boolean. Search for additive outliers
+#' @param auto.ao.search Boolean. Search for additive outliers
 #' @param out.threshold t-stat threshold in outlier search. By default is 3.8
 #' @param ao.list Vector with user specified additive outliers in a date format
-#' @param my.k_l Numeric vector defining the number of yearly and monthly trigonometric variables. If NULL, is found automatically using the information criteria
+#' @param my.k_l Numeric vector defining the number of yearly and monthly trigonometric variables. If NULL, is found automatically using the information criteria. The search range is 0:36 and 0:12 with the step size of 6 for the yearly and monthly variables, respectively.
 #' @param H Matrix with holiday- and trading day factors
 #' @param ic Information criterion used in the automatic search for the number of trigonometric regressors. There are thee options: aic, aicc and bic. By default uses aicc
 #' @param method Decomposition type: additive or multiplicative
@@ -36,7 +36,7 @@
 boiwsa=function(x,
                 dates,
                 r=0.8,
-                auto.ao.seacrh=TRUE,
+                auto.ao.search=TRUE,
                 out.threshold=3.8,
                 ao.list=NULL,
                 my.k_l=NULL,
@@ -44,8 +44,23 @@ boiwsa=function(x,
                 ic="aicc",
                 method="additive"){
 
+  # rankUpdateInverse - Update the inverse of a cross product of a matrix X when adding a new column v --------------------------------------
+  # X_inv The inverse (X^T X)^-1 before adding the new column
+  # X_t The transpose of X, i.e. X^T
+  # v The column to add
+  # returns The inverse of ([X v]^T [X v])^-1
 
 
+
+  rankUpdateInverse <- function(X_inv, X_t, v) {
+    u1 <- X_t %*% v
+    u2 <- X_inv %*% u1
+    d <- as.numeric(1 / (t(v) %*% v - t(u1) %*% u2))
+    u3 <- d * u2
+    F11_inv <- X_inv + d * u2 %*% t(u2)
+    XtX_inv <- rbind(cbind(F11_inv, -u3), c(-u3, d))
+    return(XtX_inv)
+  }
 
 # my_ao - function that creates additive outlier variables --------------------------------------
   my_ao=function(dates,out.list) {
@@ -86,14 +101,25 @@ boiwsa=function(x,
     # AO - additive outlier variables (as matrix)
 
 
-    aic0=matrix(NA,nrow=length(seq(6,42,6)),ncol=length(seq(6,42,6)))
-    aicc0=matrix(NA,nrow=length(seq(6,42,6)),ncol=length(seq(6,42,6)))
-    bic0=matrix(NA,nrow=length(seq(6,42,6)),ncol=length(seq(6,42,6)))
+    aic0=matrix(NA,nrow=length(seq(6,42,6)),ncol=length(seq(6,18,6)))
+    aicc0=matrix(NA,nrow=length(seq(6,42,6)),ncol=length(seq(6,18,6)))
+    bic0=matrix(NA,nrow=length(seq(6,42,6)),ncol=length(seq(6,18,6)))
+
+    # naming rows and columns by the number of variables
+
+    rownames(aic0)=paste0("k = ",seq(0,36,6))
+    colnames(aic0)=paste0("l = ",seq(0,12,6))
+
+    rownames(aicc0)=paste0("k = ",seq(0,36,6))
+    colnames(aicc0)=paste0("l = ",seq(0,12,6))
+
+    rownames(bic0)=paste0("k = ",seq(0,36,6))
+    colnames(bic0)=paste0("l = ",seq(0,12,6))
 
 
     for (i in 1:length(seq(6,42,6))) {
 
-      for (j in 1:length(seq(6,42,6))) {
+      for (j in 1:length(seq(6,18,6))) {
 
         X=fourier_vars(k=(i-1)*6,l=(j-1)*6,dates)
 
@@ -107,7 +133,7 @@ boiwsa=function(x,
 
 
         aic0[i,j]=stats::AIC(m)
-        aicc0[i,j]=stats::AIC(m)+2*length(m$coefficients)*(length(m$coefficients)+1)/(length(m$residuals)-length(m$coefficients)+1)
+        aicc0[i,j]=stats::AIC(m)+2*length(m$coefficients)*(length(m$coefficients)+1)/(length(m$residuals)-length(m$coefficients)-1)
         bic0[i,j]=stats::BIC(m)
 
       }
@@ -254,22 +280,23 @@ boiwsa=function(x,
 
     run=TRUE
 
+    Xs_t <- t(Xs)
     while (run) {
-
-      Ts=NULL
-
+      Ts <- numeric(length(out.search.points))
+      ts_idx <- 1
+      Xst2_inv <- solve(crossprod(Xs))
+      Xst_y <- t(Xs) %*% y
       for (t in out.search.points) {
 
         AOt=rep(0,length(dates))
 
         AOt[t]=1
 
-        Xst=cbind(Xs,AOt)
-
-        Tt=(solve(t(Xst)%*%Xst)%*%t(Xst)%*%y)[ncol(Xst)]/(diag(solve((t(Xst)%*%Xst))*sig_R^2)[ncol(Xst)]^0.5)
-
-        Ts=c(Ts,abs(Tt))
-
+        Xst2_inv_t <- rankUpdateInverse(Xst2_inv, Xs_t, AOt)
+        Xst_y_t <- rbind(Xst_y, t(AOt) %*% y)
+        Tt <- (Xst2_inv_t %*% Xst_y_t)[ncol(Xs) + 1] / (diag(Xst2_inv_t * sig_R^2)[ncol(Xs) + 1]^0.5)
+        Ts[ts_idx] <- abs(Tt)
+        ts_idx <- ts_idx + 1
       }
 
 
@@ -283,10 +310,8 @@ boiwsa=function(x,
 
         out.search.points=out.search.points[-which.max(Ts)]
 
-
-
-        Xs=cbind(Xs,AOt)
-
+        Xs <- cbind(Xs, AOt)
+        Xs_t <- t(Xs)
       }
 
 
@@ -391,7 +416,7 @@ boiwsa=function(x,
 
   # looking for additive outliers
 
-  if(auto.ao.seacrh){
+  if(auto.ao.search){
 
     auto.ao=find_outliers(y=y,dates=dates,H = H,my.AO.list = ao.list)
 
@@ -684,6 +709,8 @@ boiwsa=function(x,
     sf=exp(sf)
 
     x=exp(x)
+
+    out.factors=exp(out.factors)
 
 
   }
